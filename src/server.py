@@ -54,12 +54,14 @@ async def chat(
     base_dir = os.path.join(chat_histories, session_id, "chats")
     os.makedirs(base_dir, exist_ok=True)
 
+
     if not chat_id:
         chat_id = str(uuid4())
 
     full_path = os.path.join(base_dir, chat_id)
     os.makedirs(full_path, exist_ok=True)
     log_path = os.path.join(full_path, "log.json")
+
 
     if os.path.exists(log_path):
         with open(log_path, "r") as f:
