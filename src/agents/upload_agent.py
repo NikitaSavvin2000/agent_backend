@@ -1,16 +1,9 @@
 import asyncio
 import pandas as pd
-import os
-import httpx
-from openai import OpenAI
-from dotenv import load_dotenv
 
-load_dotenv()
-api_key = os.getenv("API_KEY")
-proxy = os.getenv("PROXY")
+from src.clients import get_open_ai_client
 
-http_client = httpx.Client(proxy=proxy)
-client = OpenAI(api_key=api_key, http_client=http_client)
+client = get_open_ai_client()
 
 
 class TimeColumnSelector:

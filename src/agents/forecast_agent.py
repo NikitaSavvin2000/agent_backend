@@ -1,5 +1,5 @@
 import requests
-import json
+
 
 class ForecastAgent:
     async def handle(self, df, time_col, target_col, horizon_time):

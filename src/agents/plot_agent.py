@@ -1,21 +1,7 @@
 import asyncio
-import httpx
-from openai import OpenAI
+from src.clients import get_open_ai_client
 
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-api_key = os.getenv('API_KEY')
-proxy = os.getenv('PROXY')
-
-http_client = httpx.Client(proxy=proxy)
-
-client = OpenAI(
-    api_key=api_key,
-    http_client=http_client
-)
+client = get_open_ai_client()
 
 
 class PlotAgent:

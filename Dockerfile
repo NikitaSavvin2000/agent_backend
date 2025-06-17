@@ -7,6 +7,7 @@ COPY . /app
 WORKDIR /app
 
 ENV PYTHONPATH=/app
+ENV PUBLIC_OR_LOCAL=PROD
 
 COPY pyproject.toml .
 COPY pdm.lock .
