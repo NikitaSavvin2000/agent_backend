@@ -1,8 +1,14 @@
 import asyncio
-from src.clients import get_open_ai_client
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
 
-client = get_open_ai_client()
+load_dotenv()
 
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+)
 
 class HorizonAgent:
     async def handle(self, user_task: str):
@@ -26,8 +32,13 @@ class HorizonAgent:
 
         def sync_call():
             return client.chat.completions.create(
-                model="gpt-4o",
-                messages=prompt
+                model="qwen/qwen3-32b:free",
+                messages=prompt,
+                extra_headers={
+                    "HTTP-Referer": "<YOUR_SITE_URL>",
+                    "X-Title": "<YOUR_SITE_NAME>",
+                }
             )
+
         response = await asyncio.to_thread(sync_call)
         return response.choices[0].message.content.strip()

@@ -4,7 +4,7 @@ import io
 import os
 
 def send_chat_df_file(session_id: str, message: str, df: pd.DataFrame, original_filename: str, chat_id: str = None):
-    url = "http://0.0.0.0:7070/chat"
+    url = "https://nikitasavvin2000-agent-backend-cae7.twc1.net/chat"
     data = {
         "session_id": session_id,
         "message": message,

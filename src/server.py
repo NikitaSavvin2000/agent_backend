@@ -34,6 +34,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import Depends
+
+class OptionalFile:
+    def __init__(
+            self,
+            file: Optional[UploadFile] = File(default=None, description="CSV/XLSX файл", openapi_exclude=True)
+    ):
+        self.file = file
+
+
 
 cwd = os.getcwd()
 chat_histories = os.path.join(cwd, "src", "chat_histories")
@@ -46,11 +56,12 @@ chat_histories = os.path.join(cwd, "src", "chat_histories")
     """
 )
 async def chat(
-        session_id: Annotated[str, Form(..., description="ID сессии пользователя")],
-        message: Annotated[str, Form(..., description="Текст запроса пользователя")],
-        chat_id: Optional[str] = Form(None, description="Опционально"),
-        file: Optional[UploadFile] = File(None, description="Опционально: файл CSV/XLSX")
+        session_id: Annotated[str, Form(...)],
+        message: Annotated[str, Form(...)],
+        chat_id: Optional[str] = Form(None),
+        optional_file: OptionalFile = Depends()
 ):
+    file = optional_file.file
     base_dir = os.path.join(chat_histories, session_id, "chats")
     os.makedirs(base_dir, exist_ok=True)
 
@@ -74,7 +85,7 @@ async def chat(
         json.dump(history, f, ensure_ascii=False, indent=2)
 
     path_to_save = None
-    if file:
+    if isinstance(file, UploadFile) and file.filename:
         filename = file.filename or "uploaded_file"
         content = await file.read()
         ext = os.path.splitext(filename)[1].lower()
@@ -90,6 +101,7 @@ async def chat(
         path_to_save = os.path.join(full_path, filename)
         if df is not None:
             df.to_csv(path_to_save, index=False)
+
 
     coordinator = Coordinator()
     result = await coordinator.run(message=message, file=path_to_save)

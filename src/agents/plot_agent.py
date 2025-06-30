@@ -1,8 +1,14 @@
 import asyncio
-from src.clients import get_open_ai_client
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
 
-client = get_open_ai_client()
+load_dotenv()
 
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+)
 
 class PlotAgent:
     async def handle(self, user_task: str, df_description: str):
@@ -19,12 +25,16 @@ class PlotAgent:
 
         def sync_call():
             return client.chat.completions.create(
-                model="gpt-4o",
-                messages=prompt
+                model="qwen/qwen3-32b:free",
+                messages=prompt,
+                extra_headers={
+                    "HTTP-Referer": "<YOUR_SITE_URL>",
+                    "X-Title": "<YOUR_SITE_NAME>",
+                }
             )
+
         response = await asyncio.to_thread(sync_call)
         return response.choices[0].message.content.strip()
-
 
 
 class OptionalPlotAgent:
@@ -34,17 +44,29 @@ class OptionalPlotAgent:
             "используя предоставленные данные. Никаких объяснений. Только исполняемый код, начиная с создания фигуры. "
             "Данные передаются в переменной `df`. Не пиши импорты и загрузку данных. Только код построения графика."
         )
+
         prompt = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"{user_task}\n\nОписание данных:\n{df_description}\n\n"
-                                        "Построй визуализацию, если считаешь, что она может дополнить или улучшить ответ, "
-                                        "даже если пользователь напрямую не просил график. Если визуализация неуместна, верни пустую строку."}
+            {
+                "role": "user",
+                "content": (
+                    f"{user_task}\n\nОписание данных:\n{df_description}\n\n"
+                    "Построй визуализацию, если считаешь, что она может дополнить или улучшить ответ, "
+                    "даже если пользователь напрямую не просил график. Если визуализация неуместна, верни пустую строку."
+                )
+            }
         ]
+
         def sync_call():
             return client.chat.completions.create(
-                model="gpt-4o",
-                messages=prompt
+                model="qwen/qwen3-32b:free",
+                messages=prompt,
+                extra_headers={
+                    "HTTP-Referer": "<YOUR_SITE_URL>",
+                    "X-Title": "<YOUR_SITE_NAME>",
+                }
             )
+
         response = await asyncio.to_thread(sync_call)
         code = response.choices[0].message.content.strip()
         if code.lower() in ("нет", "пусто", "не нужно", ""):

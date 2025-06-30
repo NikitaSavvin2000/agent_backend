@@ -32,6 +32,8 @@ class Coordinator:
 
         conclusion = await self.intent.handle(message)
 
+        print(f' >>>> conclusion = {conclusion}')
+
         if conclusion == "forecast" and df is not None:
             forecast_info = await self.parser.handle(message, df.columns.tolist(), last_date)
             result = await self.forecast.handle(df, time_col, forecast_info["target_col"], forecast_info["horizon_time"])

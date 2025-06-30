@@ -18,11 +18,12 @@ dependencies = [
     "pandas>=2.2.1",
     "coverage==7.4.4",
     "python-multipart>=0.0.20",
-    "openai>=1.86.0",
     "requests>=2.32.4",
     "plotly>=6.1.2",
+    "qwen-api>=1.4.13",
+    "openai>=1.93.0",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "MIT"}
 
