@@ -149,10 +149,10 @@ async def chat(req: Annotated[ChatRequest, Body(
             }
 
     coordinator = Coordinator()
-    if not mock_mode:
-        result = await coordinator.run(message=req.message, path_to_storage_files=data_path_json)
-    else:
+    if mock_mode == 'True':
         result = mock_result
+    else:
+        result = await coordinator.run(message=req.message, path_to_storage_files=data_path_json)
     data = result["data"]
     chart_html = result["html"]
     message = result["message"]
@@ -163,15 +163,19 @@ async def chat(req: Annotated[ChatRequest, Body(
     with open(log_path, "w") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
-    return {
-        "response": {
-            "session_id": req.session_id,
-            "chat_id": chat_id,
-            "message": message,
-            "data": data,
-            "chart_html": chart_html
+    response = {
+            "response": {
+                "session_id": req.session_id,
+                "chat_id": chat_id,
+                "message": message,
+                "data": data,
+                "chart_html": chart_html
+            }
         }
-    }
+
+    print(response)
+
+    return response
 
 
 
