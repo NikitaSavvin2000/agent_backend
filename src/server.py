@@ -12,6 +12,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.agents.coordinator import Coordinator
 from src.config import public_or_local
+from src.models.schemes import ChatRequest
+
+from dotenv import load_dotenv
+
+cwd = os.getcwd()
+path_to_mock = os.path.join(cwd, "src", "mock_data", "morocco zone 2 - powerconsumption_resampled.csv")
+
+load_dotenv()
+mock_mode = os.getenv("MOCK_MODE")
 
 
 logger = logging.getLogger(__name__)
@@ -34,14 +43,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Depends
+df_example = pd.read_csv(path_to_mock)
 
-class OptionalFile:
-    def __init__(
-            self,
-            file: Optional[UploadFile] = File(default=None, description="CSV/XLSX файл", openapi_exclude=True)
-    ):
-        self.file = file
+col_time = "Datetime"
+col_target = "consumption"
+
+json_data = df_example.to_dict(orient="records")
+
+import plotly.express as px
+
+fig = px.line(df_example, x=col_time, y=col_target, title="Визуализация временного ряда")
+html_output = fig.to_html()
+
+mock_result = {}
+mock_result["data"] = json_data
+mock_result["html"] = html_output
+mock_result["message"] = 'Отрисовали моковый график'
 
 
 
@@ -55,24 +72,31 @@ chat_histories = os.path.join(cwd, "src", "chat_histories")
     Если это первый запрос — создаёт директорию chat_histories/{session_id}/chats/{chat_id}.
     """
 )
-async def chat(
-        session_id: Annotated[str, Form(...)],
-        message: Annotated[str, Form(...)],
-        chat_id: Optional[str] = Form(None),
-        optional_file: OptionalFile = Depends()
-):
-    file = optional_file.file
-    base_dir = os.path.join(chat_histories, session_id, "chats")
+@app.post("/chat")
+async def chat(req: Annotated[ChatRequest, Body(
+    example={
+        "session_id": "abc123",
+        "message": "Проанализируй данные",
+        "chat_id": "chat456",
+        "filename": "example",
+        "data_json": [
+            {"col1": 1, "col2": "a"},
+            {"col1": 2, "col2": "b"}
+        ]
+    }
+)]):
+    if req.filename:
+        filename = req.filename + '.csv'
+
+    base_dir = os.path.join(chat_histories, req.session_id, "chats")
     os.makedirs(base_dir, exist_ok=True)
 
-
-    if not chat_id:
-        chat_id = str(uuid4())
-
+    chat_id = req.chat_id or str(uuid4())
     full_path = os.path.join(base_dir, chat_id)
     os.makedirs(full_path, exist_ok=True)
-    log_path = os.path.join(full_path, "log.json")
 
+    log_path = os.path.join(full_path, "log.json")
+    data_path_json = os.path.join(full_path, "data_path.json")
 
     if os.path.exists(log_path):
         with open(log_path, "r") as f:
@@ -80,31 +104,58 @@ async def chat(
     else:
         history = []
 
-    history.append({"role": "user", "message": message})
+    history.append({"role": "user", "message": req.message})
     with open(log_path, "w") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
-    path_to_save = None
-    if isinstance(file, UploadFile) and file.filename:
-        filename = file.filename or "uploaded_file"
-        content = await file.read()
-        ext = os.path.splitext(filename)[1].lower()
-        file_io = io.BytesIO(content)
-
-        if ext == ".csv":
-            df = pd.read_csv(file_io)
-        elif ext in [".xlsx", ".xls"]:
-            df = pd.read_excel(file_io)
+    if req.data_json and filename:
+        # загрузка или создание словаря data_path
+        if os.path.exists(data_path_json) and os.path.getsize(data_path_json) > 0:
+            with open(data_path_json, "r") as f:
+                data_index = json.load(f)
         else:
-            df = None
+            data_index = {}
 
+        if req.filename in data_index:
+            return {
+                "response": {
+                    "session_id": req.session_id,
+                    "chat_id": chat_id,
+                    "message": f"Файл с именем '{req.filename}' уже существует, данные не записаны",
+                    "data": None,
+                    "chart_html": None
+                }
+            }
+
+        df = pd.DataFrame(req.data_json)
         path_to_save = os.path.join(full_path, filename)
-        if df is not None:
-            df.to_csv(path_to_save, index=False)
+        df.to_csv(path_to_save, index=False)
 
+        data_index[req.filename] = os.path.abspath(path_to_save)
+        with open(data_path_json, "w") as f:
+            json.dump(data_index, f, ensure_ascii=False, indent=2)
+
+        json_data = df.to_dict(orient="records")
+
+        if req.message is None:
+            return {
+                "response": {
+                    "session_id": req.session_id,
+                    "chat_id": chat_id,
+                    "message": f'Данные успешно загружены. Название файла - "{filename}"',
+                    "data": json_data,
+                    "chart_html": None
+                }
+            }
 
     coordinator = Coordinator()
-    result = await coordinator.run(message=message, file=path_to_save)
+    if not mock_mode:
+        result = await coordinator.run(message=req.message, path_to_storage_files=data_path_json)
+    else:
+        result = mock_result
+    data = result["data"]
+    chart_html = result["html"]
+    message = result["message"]
 
     with open(log_path, "r") as f:
         history = json.load(f)
@@ -114,12 +165,14 @@ async def chat(
 
     return {
         "response": {
-            "session_id": session_id,
+            "session_id": req.session_id,
             "chat_id": chat_id,
-            "message": result,
-            "chart_html": None
+            "message": message,
+            "data": data,
+            "chart_html": chart_html
         }
     }
+
 
 
 @app.get("/")

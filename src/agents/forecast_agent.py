@@ -1,9 +1,12 @@
+import os
 import requests
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class ForecastAgent:
     async def handle(self, df, time_col, target_col, horizon_time):
-        url = "http://localhost:7070/backend/v1/generate_forecast"
+        url = os.getenv("FORECAST_API")
         df[time_col] = df[time_col].astype(str)
         payload = {
             "df": df.to_dict(orient="records"),

@@ -11,16 +11,19 @@ client = OpenAI(
 )
 
 class PlotAgent:
-    async def handle(self, user_task: str, df_description: str):
+    async def handle(self, user_task: str, full_describe_data: str):
         system_prompt = (
-            "Ты Python-ассистент. Сгенерируй исключительно чистый код визуализации с помощью библиотеки Plotly, "
-            "используя предоставленные данные. Никаких объяснений. Только исполняемый код, начиная с создания фигуры. "
-            "Данные передаются в переменной `df`. Не пиши импорты и загрузку данных. Только код построения графика."
+            "Ты Python-ассистент. Сгенерируй чистый, исполняемый код визуализации с помощью Plotly на основе данных из CSV-файла по пути path_to_data_csv. "
+            "Добавь только необходимые импорты. Загрузи данные в DataFrame с именем df_<короткий_англ_эквивалент_name>. "
+            "Код должен начинаться с импортов, затем — чтение данных, далее создание фигуры Plotly. "
+            "В конце преобразуй график в HTML-строку методом .to_html() и сохрани результат строго в переменную html_output. "
+            "Не отображай график. Учитывай типы колонок и примеры значений из описания данных. "
+            "Код должен быть валиден и готов к выполнению без изменений. Не используй markdown и обёртки кода, только чистый код."
         )
 
         prompt = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"{user_task}\n\nОписание данных:\n{df_description}"}
+            {"role": "user", "content": f"{user_task}\n\nОписание данных:\n{full_describe_data}"}
         ]
 
         def sync_call():
@@ -34,7 +37,10 @@ class PlotAgent:
             )
 
         response = await asyncio.to_thread(sync_call)
-        return response.choices[0].message.content.strip()
+        code_from_model = response.choices[0].message.content.strip()
+        code_from_model = code_from_model.replace('```python', '')
+        code_from_model = code_from_model.replace('```', '')
+        return code_from_model
 
 
 class OptionalPlotAgent:
