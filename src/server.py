@@ -12,9 +12,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.agents.coordinator import Coordinator
 from src.config import public_or_local
-from src.models.schemes import ChatRequest
+from src.models.schemes import ChatRequest, ChatDataRequest
 
 from dotenv import load_dotenv
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 cwd = os.getcwd()
 path_to_mock = os.path.join(cwd, "src", "mock_data", "morocco zone 2 - powerconsumption_resampled.csv")
@@ -23,7 +30,6 @@ load_dotenv()
 mock_mode = os.getenv("MOCK_MODE")
 
 
-logger = logging.getLogger(__name__)
 
 if public_or_local == 'LOCAL':
     url = 'http://localhost'
@@ -85,6 +91,9 @@ async def chat(req: Annotated[ChatRequest, Body(
         ]
     }
 )]):
+
+    logger.info(f'Received a request from session_id - {req.session_id} chat - {req.chat_id}')
+
     if req.filename:
         filename = req.filename + '.csv'
 
@@ -97,6 +106,7 @@ async def chat(req: Annotated[ChatRequest, Body(
 
     log_path = os.path.join(full_path, "log.json")
     data_path_json = os.path.join(full_path, "data_path.json")
+    print(f'data_path_json = {data_path_json}')
 
     if os.path.exists(log_path):
         with open(log_path, "r") as f:
@@ -109,7 +119,6 @@ async def chat(req: Annotated[ChatRequest, Body(
         json.dump(history, f, ensure_ascii=False, indent=2)
 
     if req.data_json and filename:
-        # загрузка или создание словаря data_path
         if os.path.exists(data_path_json) and os.path.getsize(data_path_json) > 0:
             with open(data_path_json, "r") as f:
                 data_index = json.load(f)
@@ -148,6 +157,8 @@ async def chat(req: Annotated[ChatRequest, Body(
                 }
             }
 
+
+
     coordinator = Coordinator()
     if mock_mode == 'True':
         result = mock_result
@@ -173,7 +184,53 @@ async def chat(req: Annotated[ChatRequest, Body(
             }
         }
 
-    print(response)
+    return response
+
+
+@app.post("/chat_data")
+async def chat(req: Annotated[ChatDataRequest, Body(
+    example={
+        "session_id": "1234",
+        "chat_id": "2345",
+    }
+)]):
+
+    chat_dir = os.path.join(chat_histories, req.session_id, "chats", req.chat_id)
+    json_path = os.path.join(chat_dir, "data_path.json")
+
+    if not os.path.exists(chat_dir) or not os.path.exists(json_path):
+        response = {
+            "response": {
+                "data_exist": False,
+                "massage": 'Нет загруженных данных',
+                "data": [],
+
+            }
+        }
+    else:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data_dict = json.load(f)
+
+            data = []
+            for name, path in data_dict.items():
+                description = {}
+                description["name"] = name
+                df = pd.read_csv(path)
+                df = df.loc[:10]
+                json_data = json.loads(
+                    json.dumps(df.to_dict(orient="records"), ensure_ascii=False)
+                )
+                description["json_data"] = json_data
+                data.append(description)
+
+        response = {
+            "response": {
+                "data_exist": True,
+                "massage": '',
+                "data": data,
+
+            }
+        }
 
     return response
 

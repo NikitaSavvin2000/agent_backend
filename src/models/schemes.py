@@ -13,3 +13,7 @@ class ChatRequest(BaseModel):
     chat_id: Optional[str] = None
     data_json: Optional[list[dict]] = None
     filename: Optional[str] = None
+
+class ChatDataRequest(BaseModel):
+    session_id: str
+    chat_id: str
