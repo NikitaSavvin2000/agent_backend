@@ -6,6 +6,8 @@ class VizAgent:
     async def handle(self, df_real, df_forecast, time_col, target_col):
         print("df_forecast-"*18)
         print(df_forecast)
+        df_forecast = df_forecast[[time_col, target_col]]
+        df_real = df_real[[time_col, target_col]]
 
         df_real = df_real[-len(df_forecast):]
         df_data = pd.concat([df_forecast, df_real], axis=0).sort_values(by=time_col).reset_index(drop=True)

@@ -68,6 +68,8 @@ class RecognitionTimeColAgent:
             }
         ]
 
+        print(prompt)
+
         def sync_call():
             return client.chat.completions.create(
                 model="qwen/qwen3-32b:free",
