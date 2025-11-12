@@ -121,12 +121,11 @@ class ForecastModel(ORMBase):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-
 class Message(ORMBase):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    chat_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.chat_id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     role: Mapped[str] = mapped_column(String, nullable=False)
     message: Mapped[str | None] = mapped_column(Text, default=None)
@@ -143,7 +142,23 @@ class Message(ORMBase):
     changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["User"] = relationship("User", backref="messages")
+    chat: Mapped["Chats"] = relationship("Chats", back_populates="messages")  # используем back_populates
 
+
+class Chats(ORMBase):
+    __tablename__ = "chats"
+
+    chat_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    user: Mapped["User"] = relationship("User", backref="chats")
+    messages: Mapped[list["Message"]] = relationship(
+        "Message", back_populates="chat", cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
 

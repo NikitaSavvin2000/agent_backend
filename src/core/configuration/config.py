@@ -15,7 +15,6 @@ class Settings:
         self.HOST = env.str("HOST", '0.0.0.0')
         self.PORT = env.int('PORT', 7070)
 
-        self.TOKENS_LIST = env.str('TOKENS_LIST')
         self.VERIFY_TOKEN = env.bool('VERIFY_TOKEN', True)
 
         self.JWT_SECRET_KEY = env.str("JWT_SECRET_KEY", "")
