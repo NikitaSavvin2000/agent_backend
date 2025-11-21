@@ -149,6 +149,7 @@ class Chats(ORMBase):
     __tablename__ = "chats"
 
     chat_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    chat_name: Mapped[int] = mapped_column(String, nullable=False, default=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())

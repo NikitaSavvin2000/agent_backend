@@ -7,7 +7,7 @@ from src.utils.chats import delete_chat
 app = APIRouter()
 
 @app.delete(
-    "/",
+    "",
     summary="Удаление чата",
     description="""
     Принимает обязательное поле chat_id.

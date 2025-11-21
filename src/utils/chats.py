@@ -6,46 +6,60 @@ from src.models.user_models import Message
 from src.logger import get_logger
 from src.session import db_manager
 from sqlalchemy import select, text
+import random
 
 logger = get_logger("chat_operations")
 
-async def create_new_chat(user_id: int) -> int:
+
+async def test_chat_naming(s):
+    if len(s) > 10:
+        base = s[:10]
+    else:
+        base = s
+    extra = ''.join(random.choice(s) for _ in range(3))
+    return base + extra + "..."
+
+
+async def create_new_chat(user_id: int, message: str) -> int:
     """
     Создаёт новый чат для пользователя и возвращает chat_id
     """
+    chat_name = await test_chat_naming(message)
     try:
         async with db_manager.get_db_session() as session:
             stmt = insert(Chats).values(
                 user_id=user_id,
+                chat_name=chat_name,
                 created_at=datetime.utcnow()
             ).returning(Chats.chat_id)
             result = await session.execute(stmt)
             await session.commit()
             chat_id = result.scalar_one()
-            logger.info(f"Создан новый чат ID {chat_id} для пользователя {user_id}")
-            return chat_id
+            logger.info(f"Создан новый чат ID {chat_id} с именем {chat_name} для пользователя {user_id}")
+            return chat_id, chat_name
     except Exception as e:
         logger.error(f"Ошибка при создании нового чата: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при создании нового чата")
 
 
-async def get_user_chats(user_id: int) -> list[int]:
+async def get_user_chats(user_id: int) -> list[dict]:
     """
-    Возвращает список всех chat_id пользователя, которые не удалены
+    Возвращает список всех чатов пользователя, которые не удалены,
+    в виде словарей с chat_id и chat_name
     """
     try:
         async with db_manager.get_db_session() as session:
             result = await session.execute(
-                select(Chats.chat_id)
+                select(Chats.chat_id, Chats.chat_name)
                 .where(
                     (Chats.user_id == user_id) &
                     (Chats.deleted_at.is_(None))
                 )
                 .order_by(Chats.created_at.asc())
             )
-            chat_ids = [row[0] for row in result.fetchall()]
-            logger.info(f"Загружено {len(chat_ids)} чатов для пользователя {user_id}")
-            return chat_ids
+            chats = [{"chat_id": row.chat_id, "chat_name": row.chat_name} for row in result.fetchall()]
+            logger.info(f"Загружено {len(chats)} чатов для пользователя {user_id}")
+            return chats
     except Exception as e:
         logger.error(f"Ошибка при получении чатов пользователя: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при загрузке списка чатов")

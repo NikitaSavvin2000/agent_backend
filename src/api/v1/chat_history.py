@@ -8,7 +8,7 @@ from src.utils.chats import get_history_by_chat_id
 app = APIRouter()
 
 @app.get(
-    "/",
+    "",
     summary="Получение истории чата",
     description="""
     Принимает обязательное поле chat_id.

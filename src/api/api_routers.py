@@ -4,7 +4,6 @@ api_router = APIRouter()
 
 
 from src.api.v1.chat import app as chat
-
 api_router.include_router(chat, prefix="/chat", tags=["Chat"])
 
 from src.api.v1.chat_history import app as chat_history

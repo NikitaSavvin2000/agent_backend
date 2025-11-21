@@ -19,7 +19,7 @@ from src.config import public_or_local
 from src.core.security.password import decrypt_password
 from src.core.token import jwt_token_validator
 from src.session import db_manager
-from src.utils.log_chat_massage import insert_message_to_db
+from src.utils.log_chat_message import insert_message_to_db
 from src.utils.s3_loader import upload_to_s3, load_from_s3
 from src.utils.chats import get_history_by_chat_id, create_new_chat, get_user_chats, delete_chat
 from src.models.organization_models import ConnectionSettings

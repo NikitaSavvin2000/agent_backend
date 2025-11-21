@@ -7,7 +7,7 @@ from src.utils.chats import get_user_chats
 app = APIRouter()
 
 @app.get(
-    "/",
+    "",
     summary="Получение списка чатов пользователя",
     description="""
     Возвращает список всех чатов, связанных с указанным пользователем.
@@ -20,5 +20,5 @@ async def get_user_chats_ids(
 ):
     user_id = int(user.get("sub", None))
     user_chat_ids = await get_user_chats(user_id=user_id)
-    return {"massage": "Чаты юзера", "user_chat_ids": user_chat_ids}
+    return user_chat_ids
 

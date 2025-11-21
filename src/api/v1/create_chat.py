@@ -8,7 +8,7 @@ app = APIRouter()
 
 
 @app.post(
-    "/",
+    "",
     summary="Создание нового чата",
     description="""
     Принимает обязательные поля chat_id и message.

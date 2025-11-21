@@ -7,17 +7,17 @@ from fastapi import (
     APIRouter, FastAPI, HTTPException, Depends, Body, Path, Query, Form, File, UploadFile
 )
 from src.core.token import jwt_token_validator
-from src.utils.log_chat_massage import insert_message_to_db
+from src.utils.log_chat_message import insert_message_to_db
 from src.utils.s3_loader import upload_to_s3
 from src.services.agent import fake_agent_answer
-
+from src.utils.chats import create_new_chat
 
 sep_system_file_name_key = "_1s2e3p4_"
 
 app = APIRouter()
 
 @app.post(
-    "/",
+    "",
     summary="Обработка пользовательского запроса с возможной загрузкой файла",
     description="""
     Принимает обязательные поля chat_id и message.
@@ -26,16 +26,20 @@ app = APIRouter()
     """
 )
 async def chat(
-        chat_id: Annotated[int, Form(...)],
+        chat_id: Annotated[Optional[int], Form(...)] = None,
         message: Annotated[Optional[str], Form()] = 'Привет',
         connection_id: Annotated[Optional[int], Form()] = None,
         table_name: Annotated[Optional[str], Form()] = None,
         file: Optional[UploadFile] = None,
         call_agent: Annotated[Optional[str], Form()] = 'forecast',
         agent_form_str: Annotated[Optional[str], Form()] = '{"test": 1}',
-        user: dict = Depends(jwt_token_validator)
+        user: dict = Depends(jwt_token_validator),
 ):
     user_id = int(user.get("sub", None))
+    print(chat_id)
+    chat_name = None
+    if chat_id is None:
+        chat_id, chat_name = await create_new_chat(user_id=user_id, message=message)
     role = user.get("roles", [])[0]
     organization_id = int(user.get("organization_id", None))
 
@@ -137,4 +141,5 @@ async def chat(
         "table_name": table_name,
         "call_agent": call_agent,
         "agent_form": agent_form,
+        "chat_name": chat_name
     }
