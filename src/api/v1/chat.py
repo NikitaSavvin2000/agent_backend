@@ -2,7 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
-from typing import Annotated, Optional, Any, Dict, List
+from typing import Annotated, Optional, Any, Dict, List, Union
 from fastapi import (
     APIRouter, FastAPI, HTTPException, Depends, Body, Path, Query, Form, File, UploadFile
 )
@@ -26,7 +26,7 @@ app = APIRouter()
     """
 )
 async def chat(
-        chat_id: Annotated[Optional[int], Form(...)] = None,
+        chat_id: Annotated[Union[int, str, None], Form()] = None,
         message: Annotated[Optional[str], Form()] = 'Привет',
         connection_id: Annotated[Optional[int], Form()] = None,
         table_name: Annotated[Optional[str], Form()] = None,
@@ -36,9 +36,9 @@ async def chat(
         user: dict = Depends(jwt_token_validator),
 ):
     user_id = int(user.get("sub", None))
-    print(chat_id)
+
     chat_name = None
-    if chat_id is None:
+    if chat_id is None or chat_id == "" or isinstance(chat_id, str):
         chat_id, chat_name = await create_new_chat(user_id=user_id, message=message)
     role = user.get("roles", [])[0]
     organization_id = int(user.get("organization_id", None))
