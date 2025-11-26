@@ -126,7 +126,7 @@ async def agent_answer(
     for service in list_to_call_services:
         print(service)
 
-    if connection_id and s3_key is None:
+    if connection_id and table_name and s3_key is None:
         df = await fetch_example_data(connection_id=connection_id, source_table=table_name, organization_id=organization_id)
         describe_df = describe_df_for_llm_verbose(df=df)
     elif s3_key:

@@ -24,8 +24,10 @@ from src.utils.s3_loader import upload_to_s3, load_from_s3
 from src.utils.chats import get_history_by_chat_id, create_new_chat, get_user_chats, delete_chat
 from src.models.organization_models import ConnectionSettings
 from src.mock_data.mock_html import generate_mock_timeseries_html
+from src.logger import get_logger
 
 
+logger = get_logger("fetch_data")
 
 
 async def fetch_postgres_sample_data(
