@@ -37,8 +37,18 @@ async def chat(
 ):
     user_id = int(user.get("sub", None))
 
+    def _str_to_int(value: str | None) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            return None
+
+    chat_id = _str_to_int(chat_id)
+
     chat_name = None
-    if chat_id is None or chat_id == "" or isinstance(chat_id, str):
+    if chat_id is None:
         chat_id, chat_name = await create_new_chat(user_id=user_id, message=message)
     role = user.get("roles", [])[0]
     organization_id = int(user.get("organization_id", None))
