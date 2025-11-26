@@ -27,10 +27,10 @@ app = APIRouter()
 )
 async def chat(
         chat_id: Annotated[Union[int, str, None], Form()] = None,
-        message: Annotated[Optional[str], Form()] = 'Привет',
-        connection_id: Annotated[Optional[int], Form()] = None,
-        table_name: Annotated[Optional[str], Form()] = None,
-        file: Optional[UploadFile] = None,
+        message: Annotated[Union[str, None], Form()] = 'Привет',
+        connection_id: Annotated[Union[int, str, None], Form()] = None,
+        table_name: Annotated[Union[str, None], Form()] = None,
+        file: Annotated[Union[UploadFile, str, None], Form()] = None,
         call_agent: Annotated[Optional[str], Form()] = 'forecast',
         agent_form_str: Annotated[Optional[str], Form()] = '{"test": 1}',
         user: dict = Depends(jwt_token_validator),
@@ -45,7 +45,19 @@ async def chat(
         except ValueError:
             return None
 
+    def _str_to_file(file: str | None) -> int | None:
+        if file is None or file == "":
+            return None
+        else:
+            return file
+
+    file = _str_to_file(file)
+
     chat_id = _str_to_int(chat_id)
+    connection_id = _str_to_int(connection_id)
+
+    if table_name == "":
+        table_name = None
 
     chat_name = None
     if chat_id is None:
