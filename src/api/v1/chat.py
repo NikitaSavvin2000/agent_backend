@@ -9,7 +9,7 @@ from fastapi import (
 from src.core.token import jwt_token_validator
 from src.utils.log_chat_message import insert_message_to_db
 from src.utils.s3_loader import upload_to_s3
-from src.services.agent import fake_agent_answer
+from src.services.agent import fake_agent_answer, agent_answer
 from src.utils.chats import create_new_chat
 
 sep_system_file_name_key = "_1s2e3p4_"
@@ -91,13 +91,21 @@ async def chat(
     # ===================================== ЗДЕСЬ БУДЕТ ЛОГИКА АГЕНТА =================================================
     agent_role = "agent"
 
-    answer_dict = await fake_agent_answer(message=message,
-                                          organization_id=organization_id,
-                                          connection_id=connection_id,
-                                          table_name=table_name,
-                                          s3_key=s3_key,
-                                          call_agent=call_agent,
-                                          agent_form_str=agent_form_str)
+    # answer_dict = await fake_agent_answer(message=message,
+    #                                       organization_id=organization_id,
+    #                                       connection_id=connection_id,
+    #                                       table_name=table_name,
+    #                                       s3_key=s3_key,
+    #                                       call_agent=call_agent,
+    #                                       agent_form_str=agent_form_str)
+
+    answer_dict = await agent_answer(message=message,
+                       organization_id=organization_id,
+                       connection_id=connection_id,
+                       table_name=table_name,
+                       s3_key=s3_key,
+                       call_agent=call_agent,
+                       agent_form_str=agent_form_str)
 
     agent_message = answer_dict.get("agent_message", None)
     message_html_code = answer_dict.get("message_html_code", None)

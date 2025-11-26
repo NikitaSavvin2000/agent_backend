@@ -4,7 +4,7 @@ import uuid
 import logging
 from datetime import datetime
 from typing import Annotated, Optional, Any, Dict, List
-
+from src.agents.intent_agent import get_agent_tools
 import pandas as pd
 import uvicorn
 from dotenv import load_dotenv
@@ -25,7 +25,9 @@ from src.utils.chats import get_history_by_chat_id, create_new_chat, get_user_ch
 from src.models.organization_models import ConnectionSettings
 from src.mock_data.mock_html import generate_mock_timeseries_html
 from src.services.fetch_data import fetch_example_data
-
+from src.utils.describe_df import describe_df_for_llm_verbose
+from src.agents.plot_agent import agent_plot_generation
+from src.agents.agent_answer import simple_agent_answer
 
 sep_system_file_name_key = "_1s2e3p4_"
 
@@ -93,3 +95,77 @@ async def fake_agent_answer(
         "call_agent": call_agent,
         "agent_form": agent_form
     }
+
+async def pre_fill_forecast_form(df):
+    forecast_agent_form = {}
+    return forecast_agent_form
+
+
+async def agent_answer(
+        message: str,
+        organization_id: int,
+        connection_id: Optional[int] = None,
+        table_name: Optional[str] = None,
+        s3_key: Optional[str] = None,
+        call_agent: Optional[str] = None,
+        agent_form_str: Optional[str] = None
+):
+
+
+
+    agent_message = None
+    message_html_code = None
+    message_tables = []
+    message_links = []
+    agent_data_s3_key = None
+    call_agent = None
+    agent_form = None
+
+    list_to_call_services = get_agent_tools(user_query=message)
+
+    for service in list_to_call_services:
+        print(service)
+
+    if connection_id and s3_key is None:
+        df = await fetch_example_data(connection_id=connection_id, source_table=table_name, organization_id=organization_id)
+        describe_df = describe_df_for_llm_verbose(df=df)
+    elif s3_key:
+        df = await load_from_s3(file_key=s3_key)
+        describe_df = describe_df_for_llm_verbose(df=df)
+    else:
+        df = None
+        describe_df = None
+
+    if call_agent == "forecast":
+        pass
+
+    if "visualization" in list_to_call_services and df is not None:
+        message_html_code = await agent_plot_generation(user_task=message, full_describe_data=describe_df, df=df)
+        agent_message = "Готова твоя визуализация по запросу"
+        df = df.iloc[:50]
+        message_tables.append(json.loads(df.to_json(orient='records', force_ascii=False)))
+
+    if "none" in list_to_call_services and df is not None:
+        agent_message = await simple_agent_answer(user_task=message)
+
+    if list_to_call_services[0] == "forecast":
+        agent_message = "Дозаполните форму и проверьте данные"
+        if df is None:
+            agent_message = "Загрузите или выберите данные"
+            agent_form = await pre_fill_forecast_form(df)
+
+    if agent_message is None:
+        agent_message = await simple_agent_answer(user_task=message)
+
+    print(agent_message)
+    agent_data_s3_key = s3_key
+
+    return {
+            "agent_message": agent_message,
+            "message_html_code": message_html_code,
+            "message_tables": message_tables,
+            "message_links": message_links,
+            "agent_data_s3_key": agent_data_s3_key,
+            "call_agent": call_agent,
+            "agent_form": agent_form
+        }
