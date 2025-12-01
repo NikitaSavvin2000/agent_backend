@@ -111,7 +111,7 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
         with open(mock_py_path, "w", encoding="utf-8") as f:
             f.write(code_from_model)
 
-        print(f"Код сохранен по пути: {mock_py_path}")
+        # print(f"Код сохранен по пути: {mock_py_path}")
 
         logger.info("Получили код, выполняем его")
 
@@ -124,9 +124,13 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
             return None
 
         html_output = local_vars.get("html_output")
+        df_result = local_vars.get("df_result")
+
         if html_output is None:
             logger.warning("Переменная html_output не найдена после выполнения кода")
-            return None
+
+        if df_result is None:
+            logger.warning("Переменная df_result не найдена после выполнения кода")
 
         mock_html_path = os.path.join(os.getcwd(), "src", "mock_data", "mock_chart_from_llm.html")
         os.makedirs(os.path.dirname(mock_html_path), exist_ok=True)
@@ -139,7 +143,7 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
             logger.error(f"Ошибка при сохранении HTML-файла: {e_file}")
             return None
 
-        return html_output
+        return html_output, df_result
 
     except Exception as e:
         logger.error(f"Ошибка в процессе генерации графика: {e}")

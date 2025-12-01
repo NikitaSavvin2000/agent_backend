@@ -1,58 +1,76 @@
 
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
 import pandas as pd
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
-fig = make_subplots(
-    rows=2, cols=2,
-    subplot_titles=('Количество заказ-нарядов по времени', 'Средняя температура и количество работ', 'Распределение UV индекса', 'Сумма солнечной радиации по времени'),
-    specs=[[{"secondary_y": False}, {"secondary_y": True}],
-           [{"secondary_y": False}, {"secondary_y": False}]]
-)
+df['datetime'] = pd.to_datetime(df['datetime'])
+last_date = df['datetime'].max()
+week_ago = last_date - timedelta(days=7)
+recent_data = df[df['datetime'] >= week_ago]
+high_consumption = recent_data[recent_data['vc_fact'] > 1000000]
+high_consumption_sorted = high_consumption.sort_values('vc_fact', ascending=False)
 
-df['date'] = pd.to_datetime(df['date'])
+need_resonating = True
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['Количество заказ-нарядов'], mode='lines', name='Заказ-наряды'),
-    row=1, col=1
-)
+meta_for_resonating = {
+    'high_consumption_data': high_consumption_sorted[['datetime', 'vc_fact', 'day_zone', 'dso_gp', 'vc_ppp', 'i_ee_ph', 'i_em_ph', 'i_otkl_ph']].head(20).to_dict('records'),
+    'summary_stats': {
+        'total_records': len(high_consumption),
+        'min_consumption': high_consumption['vc_fact'].min(),
+        'max_consumption': high_consumption['vc_fact'].max(),
+        'average_consumption': high_consumption['vc_fact'].mean(),
+        'median_consumption': high_consumption['vc_fact'].median(),
+        'std_consumption': high_consumption['vc_fact'].std()
+    },
+    'time_distribution': high_consumption['datetime'].dt.hour.value_counts().sort_index().to_dict(),
+    'zone_distribution': high_consumption['day_zone'].value_counts().to_dict(),
+    'correlation_with_other_metrics': {
+        'dso_gp_corr': high_consumption['vc_fact'].corr(high_consumption['dso_gp']),
+        'vc_ppp_corr': high_consumption['vc_fact'].corr(high_consumption['vc_ppp']),
+        'i_ee_ph_corr': high_consumption['vc_fact'].corr(high_consumption['i_ee_ph']),
+        'i_em_ph_corr': high_consumption['vc_fact'].corr(high_consumption['i_em_ph']),
+        'i_otkl_ph_corr': high_consumption['vc_fact'].corr(high_consumption['i_otkl_ph'])
+    },
+    'plan_vs_fact_comparison': {
+        'avg_plan': high_consumption['vc_ppp'].mean(),
+        'avg_fact': high_consumption['vc_fact'].mean(),
+        'avg_deviation': (high_consumption['vc_fact'] - high_consumption['vc_ppp']).mean(),
+        'max_deviation': (high_consumption['vc_fact'] - high_consumption['vc_ppp']).max()
+    }
+}
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['temperature_mean'], mode='lines', name='Температура', line=dict(color='red')),
-    row=1, col=2, secondary_y=False
-)
+df_result = high_consumption_sorted[['datetime', 'vc_fact', 'day_zone', 'dso_gp', 'vc_ppp', 'i_ee_ph', 'i_em_ph', 'i_otkl_ph']].copy()
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['Работ'], mode='lines', name='Работы', line=dict(color='green')),
-    row=1, col=2, secondary_y=True
-)
-
-fig.add_trace(
-    go.Histogram(x=df['uv_max'], name='UV индекс', nbinsx=18),
-    row=2, col=1
-)
-
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['solar_rad_sum'], mode='lines', name='Солнечная радиация', line=dict(color='orange')),
-    row=2, col=2
-)
-
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x=recent_data['datetime'],
+    y=recent_data['vc_fact'],
+    mode='lines',
+    name='Фактическое потребление',
+    line=dict(color='blue', width=1)
+))
+fig.add_trace(go.Scatter(
+    x=high_consumption['datetime'],
+    y=high_consumption['vc_fact'],
+    mode='markers',
+    name='> 1 000 000 Вт',
+    marker=dict(color='red', size=8, symbol='circle')
+))
+fig.add_hline(y=1000000, line_dash="dash", line_color="orange", annotation_text="Порог 1 000 000 Вт")
 fig.update_layout(
-    height=800,
-    title_text="Анализ данных сервисного центра и погодных условий",
-    showlegend=True
+    title='Фактическое потребление за последнюю неделю с выделением значений > 1 000 000 Вт',
+    xaxis_title='Дата и время',
+    yaxis_title='Потребление, Вт',
+    hovermode='x unified'
 )
-
-fig.update_xaxes(title_text="Дата", row=1, col=1)
-fig.update_xaxes(title_text="Дата", row=1, col=2)
-fig.update_xaxes(title_text="UV индекс", row=2, col=1)
-fig.update_xaxes(title_text="Дата", row=2, col=2)
-
-fig.update_yaxes(title_text="Количество заказ-нарядов", row=1, col=1)
-fig.update_yaxes(title_text="Температура (°C)", row=1, col=2, secondary_y=False)
-fig.update_yaxes(title_text="Количество работ", row=1, col=2, secondary_y=True)
-fig.update_yaxes(title_text="Частота", row=2, col=1)
-fig.update_yaxes(title_text="Солнечная радиация", row=2, col=2)
 
 html_output = fig.to_html()
+
+result_analysis = f"**Найдено {len(high_consumption)} записей с потреблением > 1 000 000 Вт за последнюю неделю**\n\n"
+result_analysis += f"- Максимальное потребление: {high_consumption['vc_fact'].max():,.0f} Вт\n"
+result_analysis += f"- Минимальное потребление из превышений: {high_consumption['vc_fact'].min():,.0f} Вт\n"
+result_analysis += f"- Среднее потребление в превышениях: {high_consumption['vc_fact'].mean():,.0f} Вт\n"
+result_analysis += f"- Медианное потребление: {high_consumption['vc_fact'].median():,.0f} Вт\n\n"
+result_analysis += "**Распределение по зонам суток:**\n"
+for zone, count in high_consumption['day_zone'].value_counts().items():
+    result_analysis += f"- {zone}: {count} случаев ({count/len(high_consumption)*100:.1f}%)\n"

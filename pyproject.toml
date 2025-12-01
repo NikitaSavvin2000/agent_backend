@@ -30,6 +30,7 @@ dependencies = [
     "greenlet>=3.2.4",
     "passlib>=1.7.4",
     "httpx>=0.28.1",
+    "statsmodels>=0.14.5",
 ]
 requires-python = ">=3.12"
 readme = "README.md"

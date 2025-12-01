@@ -28,6 +28,7 @@ from src.services.fetch_data import fetch_example_data
 from src.utils.describe_df import describe_df_for_llm_verbose
 from src.agents.plot_agent import agent_plot_generation
 from src.agents.agent_answer import simple_agent_answer
+from src.agents.analysis_agent import analytics_agent
 
 sep_system_file_name_key = "_1s2e3p4_"
 
@@ -111,8 +112,6 @@ async def agent_answer(
         agent_form_str: Optional[str] = None
 ):
 
-
-
     agent_message = None
     message_html_code = None
     message_tables = []
@@ -140,24 +139,35 @@ async def agent_answer(
         pass
 
     if "visualization" in list_to_call_services and df is not None:
-        message_html_code = await agent_plot_generation(user_task=message, full_describe_data=describe_df, df=df)
+        message_html_code, df_result = await agent_plot_generation(user_task=message, full_describe_data=describe_df, df=df)
         agent_message = "Готова твоя визуализация по запросу"
-        df = df.iloc[:50]
-        message_tables.append(json.loads(df.to_json(orient='records', force_ascii=False)))
+        if df_result is not None:
+            df_result = df_result.astype(str)
+            message_tables.append(json.loads(df_result.to_json(orient='records', force_ascii=False)))
+
+    if "analysis" in list_to_call_services and df is not None:
+        message_html_code, result_analysis, df_result = await analytics_agent(user_task=message, full_describe_data=describe_df, df=df)
+        agent_message = result_analysis
+        if df_result is not None:
+            df_result = df_result.astype(str)
+            message_tables.append(json.loads(df_result.to_json(orient='records', force_ascii=False)))
 
     if "none" in list_to_call_services and df is not None:
         agent_message = await simple_agent_answer(user_task=message)
 
-    if list_to_call_services[0] == "forecast":
-        agent_message = "Дозаполните форму и проверьте данные"
-        if df is None:
-            agent_message = "Загрузите или выберите данные"
-            agent_form = await pre_fill_forecast_form(df)
+    # if list_to_call_services[0] == "forecast":
+    #     agent_message = "Дозаполните форму и проверьте данные"
+    #     if df is None:
+    #         agent_message = "Загрузите или выберите данные"
+    #         agent_form = await pre_fill_forecast_form(df)
+
+
+
+
 
     if agent_message is None:
         agent_message = await simple_agent_answer(user_task=message)
 
-    print(agent_message)
     agent_data_s3_key = s3_key
 
     return {
