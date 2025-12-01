@@ -29,6 +29,7 @@ from src.utils.describe_df import describe_df_for_llm_verbose
 from src.agents.plot_agent import agent_plot_generation
 from src.agents.agent_answer import simple_agent_answer
 from src.agents.analysis_agent import analytics_agent
+from src.agents.forecast_agent import forecast_request, summary_for_forecast
 
 sep_system_file_name_key = "_1s2e3p4_"
 
@@ -155,11 +156,26 @@ async def agent_answer(
     if "none" in list_to_call_services and df is not None:
         agent_message = await simple_agent_answer(user_task=message)
 
-    # if list_to_call_services[0] == "forecast":
-    #     agent_message = "Дозаполните форму и проверьте данные"
-    #     if df is None:
-    #         agent_message = "Загрузите или выберите данные"
-    #         agent_form = await pre_fill_forecast_form(df)
+
+    if "forecast" in list_to_call_services and df is not None:
+
+        result = await forecast_request(df=df, user_task=message, description_df=describe_df)
+
+        meta_info = result.get("meta_info")
+        message_html_code = result.get("html_chart")
+        predict_table = result.get("predict_table")
+
+        message_tables.append(predict_table)
+
+        agent_message = await summary_for_forecast(user_task=message, meta_info=meta_info)
+
+        print(agent_message)
+
+
+    # agent_message = "Дозаполните форму и проверьте данные"
+        # if df is None:
+        #     agent_message = "Загрузите или выберите данные"
+        #     agent_form = await pre_fill_forecast_form(df)
 
 
 
