@@ -66,7 +66,7 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
             exec(code_from_model, {"df": df}, local_vars)
         except Exception as e_exec:
             logger.error(f"Ошибка при выполнении кода LLM: {e_exec}")
-            logger.debug(f"Код, вызвавший ошибку:\n{code_from_model}")
+            logger.error(f"Код, вызвавший ошибку:\n{code_from_model}")
             return None
 
         html_output = None
