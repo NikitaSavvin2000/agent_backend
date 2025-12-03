@@ -52,7 +52,6 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
 
         mock_py_path = os.path.join(os.getcwd(), "src", "mock_data", "code_from_llm.py")
 
-        # Создать директорию, если не существует
         os.makedirs(os.path.dirname(mock_py_path), exist_ok=True)
 
         # Сохраняем код в файл
@@ -95,5 +94,5 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
         return html_output, result_analysis, df_result
 
     except Exception as e:
-        logger.error(f"Ошибка в процессе генерации графика: {e}")
+        logger.error(f"Ошибка в процессе генерации анализа: {e}")
         return None

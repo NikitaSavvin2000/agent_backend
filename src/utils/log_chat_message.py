@@ -20,7 +20,8 @@ async def insert_message_to_db(
         call_agent: str | None = None,
         agent_form: dict | None = None,
         deleted_at: datetime | None = None,
-        changed_at: datetime | None = None
+        changed_at: datetime | None = None,
+        result_s3_key: str | None = None,
 ):
     try:
         logger.info(f"Начало вставки сообщения для пользователя ID {user_id} в чат ID {chat_id}")
@@ -40,7 +41,8 @@ async def insert_message_to_db(
                 agent_form=agent_form,
                 created_at=datetime.utcnow(),
                 deleted_at=deleted_at,
-                changed_at=changed_at
+                changed_at=changed_at,
+                result_s3_key=result_s3_key
             )
             session.add(new_message)
             await session.commit()

@@ -1,4 +1,4 @@
-from src.agents.prompts import simple_answer_prompt
+from src.agents.prompts import simple_answer_prompt, fill_empty_answer_prompt
 from src.agents.main_llm import call_llm
 from src.logger import get_logger
 
@@ -19,4 +19,22 @@ async def simple_agent_answer(user_task: str):
         return answer
     except Exception as e:
         logger.error(f"Ошибка в процессе генерации простого ответа: {e}")
+        return None
+
+
+async def fill_empty_agent_answer(user_task: str, describe_df: str = None):
+    system_prompt = fill_empty_answer_prompt.format(user_task=user_task)
+    try:
+        logger.info("Отправляем запрос на формирование резюме работы агента")
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Описание данных: {describe_df}" if describe_df else "Нет описания данных."}
+        ]
+
+        response = call_llm(messages, temperature=1.2, max_tokens=500)
+        answer = response.choices[0].message.content.strip()
+        return answer
+    except Exception as e:
+        logger.error(f"Ошибка в процессе генерации резюме: {e}")
         return None

@@ -130,3 +130,27 @@ async def delete_chat(chat_id: int, user_id: int):
     except Exception as e:
         logger.error(f"Ошибка при удалении чата: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при удалении чата")
+
+
+async def get_context_by_role(chat_id: int, role: str, limit: int = 5):
+    try:
+        logger.info(f"Загрузка последних {limit} сообщений для чата ID {chat_id} и роли '{role}'")
+        async with db_manager.get_db_session() as session:
+            result = await session.execute(
+                select(
+                    Message.message,
+                    Message.result_s3_key
+                )
+                .where(Message.chat_id == chat_id, Message.role == role)
+                .order_by(Message.created_at.desc())
+                .limit(limit)
+            )
+            messages = [
+                {"message": row.message, "result_s3_key": row.result_s3_key}
+                for row in result.fetchall()
+            ]
+            logger.info(f"Загружено {len(messages)} сообщений контекста для чата ID {chat_id} и роли '{role}'")
+            return messages
+    except Exception as e:
+        logger.error(f"Ошибка при получении сообщений: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при загрузке сообщений из базы данных")

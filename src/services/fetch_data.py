@@ -68,8 +68,6 @@ async def fetch_postgres_sample_data(
 
 
 
-
-
 async def fetch_sample_data_and_discreteness(connection_id, source_table, organization_id) :
 
     async with db_manager.get_db_session() as session:

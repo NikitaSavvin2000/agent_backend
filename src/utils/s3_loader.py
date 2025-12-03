@@ -39,6 +39,19 @@ async def upload_to_s3(file: UploadFile, folder: str = "uploads") -> str:
         raise HTTPException(status_code=500, detail="Ошибка при загрузке файла в S3")
 
 
+async def upload_df_to_s3(df: pd.DataFrame, folder: str = "uploads") -> str:
+    try:
+        uid = uuid.uuid4().hex
+        filename = f"{uid}.csv"
+        s3_key = f"{folder}/{filename}"
+        buffer = io.StringIO()
+        df.to_csv(buffer, index=False)
+        s3.put_object(Bucket=S3_BUCKET, Key=s3_key, Body=buffer.getvalue())
+        return s3_key
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка при загрузке CSV в S3")
+
+
 
 async def load_from_s3(file_key: str) -> pd.DataFrame:
     try:

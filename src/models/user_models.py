@@ -140,6 +140,7 @@ class Message(ORMBase):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    result_s3_key: Mapped[str | None] = mapped_column(Text, default=None)
 
     user: Mapped["User"] = relationship("User", backref="messages")
     chat: Mapped["Chats"] = relationship("Chats", back_populates="messages")  # используем back_populates
