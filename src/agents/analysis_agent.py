@@ -33,7 +33,7 @@ async def analytics_resonating_agent(user_task: str, result_analysis: str, meta_
         return answer
 
     except Exception as e:
-        logger.error(f"Ошибка в процессе генерации графика: {e}")
+        logger.error(f"Ошибка в процессе обоснования: {e}")
         return None
 
 async def analytics_agent(user_task: str, full_describe_data: str, df):
@@ -79,7 +79,8 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
 
         if need_resonating:
             result_resonating = await analytics_resonating_agent(user_task, result_analysis, meta_for_resonating)
-            result_analysis = result_analysis + '\n## **Обоснование**\n' + result_resonating
+            if result_resonating is not None:
+                result_analysis = result_analysis + '\n## **Обоснование**\n' + result_resonating
 
         if html_output is None:
             logger.warning("Переменная html_output не найдена после выполнения кода")

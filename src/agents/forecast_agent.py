@@ -54,7 +54,7 @@ async def intend_forecast_params(df, user_task, description_df):
         ]
 
         response = call_llm(messages, temperature=0.0, max_tokens=6000)
-        answer= response.choices[0].message.content.strip()
+        answer = response.choices[0].message.content.strip()
         params = json.loads(answer)
 
         time_col = params.get("time_col")
