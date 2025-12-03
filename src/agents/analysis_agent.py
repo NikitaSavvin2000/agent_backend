@@ -2,7 +2,7 @@ import asyncio
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from src.agents.prompts import analytics_prompt, resonating_prompt
+from src.agents.prompts import analytics_prompt, resonating_prompt, visualisation_prompt
 from src.agents.main_llm import call_llm
 from src.logger import get_logger
 
@@ -41,6 +41,8 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
         logger.info("Отправляем запрос на кодогенерацию анализа")
 
         system_prompt = analytics_prompt.format(df_description=full_describe_data)
+        # system_prompt = visualisation_prompt.format(df_description=full_describe_data)
+
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_task}
