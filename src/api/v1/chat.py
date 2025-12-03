@@ -88,8 +88,7 @@ async def chat(
         context = await get_context_by_role(chat_id=chat_id, role=role, limit=LIMIT_CONTEXT_MASSAGES)
         llm_context = await create_context_for_llm(context=context)
         data_index = await intent_data_context(user_query=message, llm_context=llm_context)
-    print(data_index)
-    print(f'data_index type = {type(data_index)}')
+
     if data_index is not None:
         s3_key_context = context[data_index]["result_s3_key"]
         message_context = context[data_index]["message"]
@@ -98,7 +97,6 @@ async def chat(
     if isinstance(file, str) or not file:
         file = None
 
-    agent_form: Optional[dict] = None
     if agent_form_str:
         try:
             agent_form = json.loads(agent_form_str)
@@ -109,7 +107,7 @@ async def chat(
         answer = "Введите сообщение"
         return answer
 
-    if file and s3_key_context is not None:
+    if file and s3_key_context is None:
         original_filename = file.filename
         name, ext = os.path.splitext(original_filename)
         ext = ext.lower().lstrip(".")

@@ -1,6 +1,11 @@
 import os
+from httpx import Client, Timeout
 from openai import OpenAI
 from dotenv import load_dotenv
+from src.logger import get_logger
+
+logger = get_logger("file main_llm")
+
 
 load_dotenv()
 
@@ -20,25 +25,30 @@ base_url = models_api_config[model_to_use]["base_url"]
 
 def call_llm(messages, temperature=0.5, max_tokens=2512, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
     if api_key is None:
-        if api_key is None:
-            raise ValueError("API key не задана и не найдена в окружении")
+        raise ValueError("API key не задана и не найдена в окружении")
+
+    timeout = Timeout(300.0, read=300.0)
+    http_client = Client(timeout=timeout)
 
     client = OpenAI(
         api_key=api_key,
-        base_url=base_url
+        base_url=base_url,
+        http_client=http_client
     )
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        top_p=top_p,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty
-    )
-
-    return response
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty
+        )
+        return response
+    except Exception as e:
+        logger.error(f"call_llm ошибка {e}")
+        return None
 
 if __name__ == "__main__":
     # Пример использования

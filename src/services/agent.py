@@ -53,7 +53,6 @@ async def agent_answer(
     elif s3_key:
         df = await load_from_s3(file_key=s3_key)
         describe_df = describe_df_for_llm_verbose(df=df)
-        print(describe_df)
     else:
         df = None
         describe_df = None

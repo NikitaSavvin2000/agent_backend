@@ -31,3 +31,8 @@ def describe_df_for_llm_verbose(df, n_examples=3):
 
     description.append("Это описание можно использовать, чтобы понять данные и сформулировать запросы к ним.")
     return "\n".join(description)
+
+
+# def describe_df_for_llm_verbose(df, n_examples=3):
+#     return df.describe().to_string()
+

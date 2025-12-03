@@ -101,7 +101,6 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
         code_from_model = code_from_model.replace('```python', '').replace('```', '')
 
 
-
         mock_py_path = os.path.join(os.getcwd(), "src", "mock_data", "code_from_llm.py")
 
         # Создать директорию, если не существует
@@ -111,8 +110,6 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
         with open(mock_py_path, "w", encoding="utf-8") as f:
             f.write(code_from_model)
 
-        # print(f"Код сохранен по пути: {mock_py_path}")
-
         logger.info("Получили код, выполняем его")
 
         local_vars = {}
@@ -120,7 +117,9 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
             exec(code_from_model, {"df": df}, local_vars)
         except Exception as e_exec:
             logger.error(f"Ошибка при выполнении кода LLM: {e_exec}")
-            logger.debug(f"Код, вызвавший ошибку:\n{code_from_model}")
+            logger.error(f"========================================== Код, вызвавший ошибку: ===================================\n")
+            logger.error(f"\n{code_from_model}")
+            logger.error(f"====================================================================================================\n")
             return None
 
         html_output = local_vars.get("html_output")

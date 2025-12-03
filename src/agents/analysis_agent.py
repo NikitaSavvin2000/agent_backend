@@ -46,9 +46,11 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
             {"role": "user", "content": user_task}
         ]
 
-        response = call_llm(messages, temperature=0.0, max_tokens=6000)
+        response = call_llm(messages, temperature=0.0, max_tokens=8000)
+        logger.info("Получили ответ, распаковываем его")
         code_from_model = response.choices[0].message.content.strip()
         code_from_model = code_from_model.replace('```python', '').replace('```', '')
+        logger.info("Получили код")
 
         mock_py_path = os.path.join(os.getcwd(), "src", "mock_data", "code_from_llm.py")
 
@@ -58,7 +60,7 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
         with open(mock_py_path, "w", encoding="utf-8") as f:
             f.write(code_from_model)
 
-        logger.info("Получили код, выполняем его")
+        logger.info("Выполняем код")
 
         local_vars = {}
         try:
@@ -90,7 +92,6 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
 
         if df_result is None:
             logger.warning("Переменная result_analysis не найдена после выполнения кода")
-
 
         return html_output, result_analysis, df_result
 
