@@ -128,7 +128,7 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
         if fig is not None:
             logger.info("Конвертируем ее")
 
-            png_bytes = pio.to_image(fig, format="png")
+            png_bytes = fig.to_image(format="png")
             png_base64 = base64.b64encode(png_bytes).decode("utf-8")
         else:
             logger.info("Изображения нет")
