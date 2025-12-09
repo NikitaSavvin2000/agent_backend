@@ -5,7 +5,8 @@ from openai import OpenAI
 from src.agents.prompts import visualisation_prompt
 from src.agents.main_llm import call_llm
 from src.logger import get_logger
-
+import plotly.io as pio
+import base64
 
 logger = get_logger("plot_agent")
 
@@ -122,6 +123,17 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
             logger.error(f"====================================================================================================\n")
             return None
 
+        logger.info("Получаем переменную изображения fig")
+        fig = local_vars.get("fig")
+        if fig is not None:
+            logger.info("Конвертируем ее")
+
+            png_bytes = pio.to_image(fig, format="png")
+            png_base64 = base64.b64encode(png_bytes).decode("utf-8")
+        else:
+            logger.info("Изображения нет")
+            png_base64 = None
+
         html_output = local_vars.get("html_output")
         df_result = local_vars.get("df_result")
 
@@ -142,7 +154,7 @@ async def agent_plot_generation(user_task: str, full_describe_data: str, df):
             logger.error(f"Ошибка при сохранении HTML-файла: {e_file}")
             return None
 
-        return html_output, df_result
+        return html_output, df_result, png_base64
 
     except Exception as e:
         logger.error(f"Ошибка в процессе генерации графика: {e}")

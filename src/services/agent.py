@@ -61,11 +61,11 @@ async def agent_answer(
         pass
 
     if "visualization" in list_to_call_services and df is not None:
-        message_html_code, df_result = await agent_plot_generation(user_task=message, full_describe_data=describe_df, df=df)
+        message_html_code, df_result, png_base64 = await agent_plot_generation(user_task=message, full_describe_data=describe_df, df=df)
         agent_message = "Готова твоя визуализация по запросу"
 
     if "analysis" in list_to_call_services and df is not None:
-        message_html_code, result_analysis, df_result = await analytics_agent(user_task=message, full_describe_data=describe_df, df=df)
+        message_html_code, png_base64, result_analysis, df_result = await analytics_agent(user_task=message, full_describe_data=describe_df, df=df)
         agent_message = result_analysis
 
     if "none" in list_to_call_services and df is not None:
@@ -78,6 +78,8 @@ async def agent_answer(
         meta_info = result.get("meta_info")
         message_html_code = result.get("html_chart")
         predict_table = result.get("predict_table")
+        png_base64 = result.get("png_base64", None)
+
         df_result = pd.DataFrame(predict_table)
         agent_message = await summary_for_forecast(user_task=message, meta_info=meta_info)
 

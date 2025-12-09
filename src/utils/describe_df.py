@@ -9,6 +9,7 @@ def is_datetime_column(series):
     except:
         return False
 
+
 def describe_df_for_llm_verbose(df, n_examples=3):
     description = [f"У нас есть DataFrame с {len(df)} строк(ой) и {len(df.columns)} колонками."]
 

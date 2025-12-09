@@ -41,7 +41,6 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
         logger.info("Отправляем запрос на кодогенерацию анализа")
 
         system_prompt = analytics_prompt.format(df_description=full_describe_data)
-        # system_prompt = visualisation_prompt.format(df_description=full_describe_data)
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -72,6 +71,14 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
             logger.error(f"Код, вызвавший ошибку:\n{code_from_model}")
             return None
 
+        fig = local_vars.get("fig")
+        if fig is not None:
+            png_bytes = pio.to_image(fig, format="png")
+            png_base64 = base64.b64encode(png_bytes).decode("utf-8")
+        else:
+            png_base64 = None
+
+
         html_output = None
         result_analysis = None
 
@@ -95,7 +102,7 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
         if df_result is None:
             logger.warning("Переменная result_analysis не найдена после выполнения кода")
 
-        return html_output, result_analysis, df_result
+        return html_output, png_base64, result_analysis, df_result,
 
     except Exception as e:
         logger.error(f"Ошибка в процессе генерации анализа: {e}")
