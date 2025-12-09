@@ -100,40 +100,127 @@
 #         )
 
 #     return "\n".join(description)
-import pandas as pd
+# import pandas as pd
 
-def is_datetime_column(series):
-    if pd.api.types.is_datetime64_any_dtype(series):
-        return True
-    try:
-        converted = pd.to_datetime(series.dropna(), errors='coerce')
-        return converted.notnull().sum() > 0
-    except:
-        return False
-
-def describe_df_for_llm_verbose(df, n_examples=3):
-    description = [f"У нас есть DataFrame с {len(df)} строк(ой) и {len(df.columns)} колонками."]
-
-    for col in df.columns:
-        dtype = df[col].dtype
-        non_null_count = df[col].notnull().sum()
-        null_count = df[col].isnull().sum()
-        unique_count = df[col].nunique()
-        examples = df[col].dropna().unique()[:n_examples].tolist()
-        col_desc = f"Колонка '{col}' имеет тип {dtype}, {non_null_count} значений заполнено, {null_count} пропущено, {unique_count} уникальных значений."
-        col_desc += f" Примеры значений: {examples}."
-
-        if pd.api.types.is_numeric_dtype(df[col]):
-            col_desc += f" Статистика: min={df[col].min()}, max={df[col].max()}, среднее={df[col].mean():.2f}, стандартное отклонение={df[col].std():.2f}."
-        elif is_datetime_column(df[col]):
-            dates = pd.to_datetime(df[col], errors='coerce')
-            col_desc += f" Диапазон дат: от {dates.min()} до {dates.max()}."
-
-        description.append(col_desc)
-
-    description.append("Это описание можно использовать, чтобы понять данные и сформулировать запросы к ним.")
-    return "\n".join(description)
-
+# def is_datetime_column(series):
+#     if pd.api.types.is_datetime64_any_dtype(series):
+#         return True
+#     try:
+#         converted = pd.to_datetime(series.dropna(), errors='coerce')
+#         return converted.notnull().sum() > 0
+#     except:
+#         return False
 
 # def describe_df_for_llm_verbose(df, n_examples=3):
-#     return df.describe().to_string()
+#     description = [f"У нас есть DataFrame с {len(df)} строк(ой) и {len(df.columns)} колонками."]
+
+#     for col in df.columns:
+#         dtype = df[col].dtype
+#         non_null_count = df[col].notnull().sum()
+#         null_count = df[col].isnull().sum()
+#         unique_count = df[col].nunique()
+#         examples = df[col].dropna().unique()[:n_examples].tolist()
+#         col_desc = f"Колонка '{col}' имеет тип {dtype}, {non_null_count} значений заполнено, {null_count} пропущено, {unique_count} уникальных значений."
+#         col_desc += f" Примеры значений: {examples}."
+
+#         if pd.api.types.is_numeric_dtype(df[col]):
+#             col_desc += f" Статистика: min={df[col].min()}, max={df[col].max()}, среднее={df[col].mean():.2f}, стандартное отклонение={df[col].std():.2f}."
+#         elif is_datetime_column(df[col]):
+#             dates = pd.to_datetime(df[col], errors='coerce')
+#             col_desc += f" Диапазон дат: от {dates.min()} до {dates.max()}."
+
+#         description.append(col_desc)
+
+#     description.append("Это описание можно использовать, чтобы понять данные и сформулировать запросы к ним.")
+#     return "\n".join(description)
+
+
+# # def describe_df_for_llm_verbose(df, n_examples=3):
+# #     return df.describe().to_string()
+
+# src/utils/describe_df.py
+from typing import Optional, List
+import pandas as pd
+from src.logger import get_logger
+
+logger = get_logger("describe_df")
+
+
+def describe_df_for_llm_verbose(df: Optional[pd.DataFrame]) -> str:
+    """
+    Генерирует текстовое описание DataFrame для LLM.
+
+    Безопасно обрабатывает случаи:
+    - df is None
+    - df не DataFrame
+    - df пустой
+    """
+
+    if df is None:
+        logger.warning("describe_df_for_llm_verbose получил df=None")
+        return (
+            "Модель не вернула дополнительную таблицу (df_result). "
+            "Доступен только основной текстовый анализ."
+        )
+
+    if not isinstance(df, pd.DataFrame):
+        logger.warning(f"Ожидался pandas.DataFrame, получено {type(df)}")
+        return (
+            "Вместо таблицы был получен объект другого типа. "
+            "Используйте только текстовый анализ."
+        )
+
+    if df.empty:
+        logger.warning("describe_df_for_llm_verbose получил пустой DataFrame")
+        return (
+            "Получена пустая таблица без строк. "
+            "Дополнительный количественный анализ невозможен."
+        )
+
+    # --- Базовое описание ---
+    description: List[str] = [
+        f"У нас есть DataFrame с {len(df)} строк(ой) и {len(df.columns)} колонками."
+    ]
+
+    # Работаем с копией
+    df_copy = df.copy()
+
+    # --- Описание колонок ---
+    description.append("Колонки и их базовые характеристики:")
+
+    for col in df_copy.columns:
+        series = df_copy[col]
+        dtype = str(series.dtype)
+        non_null_count = series.notna().sum()
+        null_count = series.isna().sum()
+
+        example_values = series.dropna().unique()[:5]
+        example_values_list = ", ".join(map(str, example_values))
+
+        description.append(
+            f"- Колонка '{col}': тип {dtype}, "
+            f"ненулевых значений {non_null_count}, пропусков {null_count}. "
+            f"Примеры значений: {example_values_list}"
+        )
+
+    # --- Числовая статистика ---
+    numeric_cols = df_copy.select_dtypes(include=["number"]).columns.tolist()
+    if numeric_cols:
+        description.append(
+            "Для числовых колонок рассчитаны простые статистики (минимум, максимум, среднее):"
+        )
+        desc = df_copy[numeric_cols].describe().T
+        for col in numeric_cols:
+            row = desc.loc[col]
+            col_min = row.get("min")
+            col_max = row.get("max")
+            col_mean = row.get("mean")
+            description.append(
+                f"- '{col}': min={col_min}, max={col_max}, mean={col_mean}"
+            )
+    else:
+        description.append(
+            "В таблице нет числовых колонок, статистические показатели не рассчитываются."
+        )
+
+    return "\n".join(description)

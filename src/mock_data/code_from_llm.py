@@ -1,145 +1,82 @@
 
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 from plotly.subplots import make_subplots
 
-df['date'] = pd.to_datetime(df['date'], errors='coerce')
+df['datetime'] = pd.to_datetime(df['datetime'], errors='coerce')
 
-fig = make_subplots(
-    rows=3, cols=2,
-    subplot_titles=('Общее дневное потребление', 'Среднее почасовое потребление', 
-                    'Минимальное почасовое', 'Максимальное почасовое',
-                    'Стандартное отклонение почасового', 'Сравнение метрик'),
-    specs=[[{'secondary_y': False}, {'secondary_y': False}],
-           [{'secondary_y': False}, {'secondary_y': False}],
-           [{'secondary_y': False}, {'secondary_y': False}]]
-)
+df['date'] = df['datetime'].dt.date
+df['hour'] = df['datetime'].dt.hour
+df['month'] = df['datetime'].dt.month
+df['day_of_week'] = df['datetime'].dt.dayofweek
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['total_daily'], mode='lines', name='total_daily'),
-    row=1, col=1
-)
+daily_consumption = df.groupby('date')['vc_fact'].agg(['sum', 'mean', 'min', 'max']).reset_index()
+daily_consumption.columns = ['date', 'total_daily', 'avg_hourly', 'min_hourly', 'max_hourly']
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['avg_hourly'], mode='lines', name='avg_hourly'),
-    row=1, col=2
-)
+hourly_pattern = df.groupby('hour')['vc_fact'].agg(['mean', 'std']).reset_index()
+hourly_pattern.columns = ['hour', 'avg_consumption', 'std_consumption']
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['min_hourly'], mode='lines', name='min_hourly'),
-    row=2, col=1
-)
+monthly_consumption = df.groupby('month')['vc_fact'].agg(['sum', 'mean']).reset_index()
+monthly_consumption.columns = ['month', 'total_monthly', 'avg_daily']
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['max_hourly'], mode='lines', name='max_hourly'),
-    row=2, col=2
-)
+weekday_consumption = df.groupby('day_of_week')['vc_fact'].mean().reset_index()
+weekday_consumption.columns = ['day_of_week', 'avg_consumption']
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['std_hourly'], mode='lines', name='std_hourly'),
-    row=3, col=1
-)
+zone_consumption = df.groupby('day_zone')['vc_fact'].agg(['sum', 'mean', 'count']).reset_index()
+zone_consumption.columns = ['day_zone', 'total_consumption', 'avg_hourly', 'hours_count']
 
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['avg_hourly'], mode='lines', name='avg_hourly', line=dict(color='blue')),
-    row=3, col=2
-)
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['min_hourly'], mode='lines', name='min_hourly', line=dict(color='green')),
-    row=3, col=2, secondary_y=False
-)
-fig.add_trace(
-    go.Scatter(x=df['date'], y=df['max_hourly'], mode='lines', name='max_hourly', line=dict(color='red')),
-    row=3, col=2, secondary_y=False
-)
+fig1 = go.Figure()
+fig1.add_trace(go.Scatter(x=daily_consumption['date'], y=daily_consumption['total_daily'],
+                         mode='lines', name='Суточное потребление'))
+fig1.update_layout(title='Динамика суточного потребления', xaxis_title='Дата', yaxis_title='Потребление')
+html_output1 = fig1.to_html()
 
-fig.update_layout(height=1200, showlegend=True, title_text="Анализ фактического потребления")
+fig2 = make_subplots(rows=2, cols=2, subplot_titles=('Среднее по часам', 'Суммарное по месяцам',
+                                                    'Среднее по дням недели', 'Потребление по зонам'))
+fig2.add_trace(go.Scatter(x=hourly_pattern['hour'], y=hourly_pattern['avg_consumption'],
+                         mode='lines+markers', name='Среднее'), row=1, col=1)
+fig2.add_trace(go.Bar(x=monthly_consumption['month'], y=monthly_consumption['total_monthly'],
+                     name='Сумма'), row=1, col=2)
+fig2.add_trace(go.Bar(x=weekday_consumption['day_of_week'], y=weekday_consumption['avg_consumption'],
+                     name='Среднее'), row=2, col=1)
+fig2.add_trace(go.Bar(x=zone_consumption['day_zone'], y=zone_consumption['avg_hourly'],
+                     name='Среднее'), row=2, col=2)
+fig2.update_layout(height=800, showlegend=False)
+html_output2 = fig2.to_html()
 
-html_output = fig.to_html()
-
-df['year'] = df['date'].dt.year
-df['month'] = df['date'].dt.month
-df['quarter'] = df['date'].dt.quarter
-
-yearly_stats = df.groupby('year').agg({
-    'total_daily': ['mean', 'min', 'max', 'std'],
-    'avg_hourly': ['mean', 'min', 'max', 'std'],
-    'min_hourly': ['mean', 'min', 'max', 'std'],
-    'max_hourly': ['mean', 'min', 'max', 'std'],
-    'std_hourly': ['mean', 'min', 'max', 'std']
-}).round(2)
-
-monthly_stats = df.groupby('month').agg({
-    'total_daily': ['mean', 'min', 'max', 'std'],
-    'avg_hourly': ['mean', 'min', 'max', 'std']
-}).round(2)
-
-quarterly_stats = df.groupby('quarter').agg({
-    'total_daily': ['mean', 'min', 'max', 'std'],
-    'avg_hourly': ['mean', 'min', 'max', 'std']
-}).round(2)
-
-df['daily_range'] = df['max_hourly'] - df['min_hourly']
-df['variation_coef'] = (df['std_hourly'] / df['avg_hourly'] * 100).round(2)
-
-overall_stats = {
-    'total_daily_mean': df['total_daily'].mean(),
-    'total_daily_std': df['total_daily'].std(),
-    'avg_hourly_mean': df['avg_hourly'].mean(),
-    'avg_hourly_std': df['avg_hourly'].std(),
-    'min_hourly_mean': df['min_hourly'].mean(),
-    'max_hourly_mean': df['max_hourly'].mean(),
-    'daily_range_mean': df['daily_range'].mean(),
-    'variation_coef_mean': df['variation_coef'].mean(),
-    'total_records': len(df),
-    'date_range_start': df['date'].min(),
-    'date_range_end': df['date'].max()
+stats_summary = {
+    'total_consumption': df['vc_fact'].sum(),
+    'avg_hourly': df['vc_fact'].mean(),
+    'min_hourly': df['vc_fact'].min(),
+    'max_hourly': df['vc_fact'].max(),
+    'std_hourly': df['vc_fact'].std(),
+    'data_points': len(df),
+    'date_range': f"{df['datetime'].min()} - {df['datetime'].max()}"
 }
 
-df_result = pd.DataFrame({
-    'yearly_stats': [yearly_stats.to_dict()],
-    'monthly_stats': [monthly_stats.to_dict()],
-    'quarterly_stats': [quarterly_stats.to_dict()],
-    'overall_stats': [overall_stats]
-})
-
 result_analysis = f"""
-Анализ фактического потребления за период с {df['date'].min().date()} по {df['date'].max().date()}:
+Анализ фактического потребления (vc_fact):
+1. Общий объем потребления: {stats_summary['total_consumption']:,.0f} единиц
+2. Среднее часовое потребление: {stats_summary['avg_hourly']:,.0f} ± {stats_summary['std_hourly']:,.0f}
+3. Диапазон часового потребления: от {stats_summary['min_hourly']:,.0f} до {stats_summary['max_hourly']:,.0f}
+4. Период анализа: {stats_summary['date_range']}
+5. Количество часовых наблюдений: {stats_summary['data_points']}
 
-1. Общие показатели:
-   - Среднее дневное потребление: {overall_stats['total_daily_mean']:.2f} (σ={overall_stats['total_daily_std']:.2f})
-   - Среднее почасовое потребление: {overall_stats['avg_hourly_mean']:.2f} (σ={overall_stats['avg_hourly_std']:.2f})
-   - Средний дневной диапазон: {overall_stats['daily_range_mean']:.2f}
-   - Средний коэффициент вариации: {overall_stats['variation_coef_mean']:.2f}%
-
-2. Временные паттерны:
-   - Данные охватывают {overall_stats['total_records']} дней
-   - Анализ по годам, месяцам и кварталам доступен в df_result
-
-3. Стабильность потребления:
-   - Минимальное почасовое: {overall_stats['min_hourly_mean']:.2f}
-   - Максимальное почасовое: {overall_stats['max_hourly_mean']:.2f}
-   - Разброс между min и max составляет примерно {((overall_stats['max_hourly_mean'] - overall_stats['min_hourly_mean']) / overall_stats['avg_hourly_mean'] * 100):.1f}% от среднего
+Основные паттерны:
+- Суточная динамика показывает {hourly_pattern.loc[hourly_pattern['avg_consumption'].idxmax(), 'hour']}:00 как час пик
+- Месячное распределение: максимум в месяце {monthly_consumption.loc[monthly_consumption['total_monthly'].idxmax(), 'month']}
+- По зонам суток: наибольшее среднее потребление в зоне '{zone_consumption.loc[zone_consumption['avg_hourly'].idxmax(), 'day_zone']}'
 """
 
 need_resonating = True
 meta_for_resonating = {
-    'data_points': len(df),
-    'date_range': {'start': str(df['date'].min()), 'end': str(df['date'].max())},
-    'key_metrics': {
-        'total_daily': {'mean': float(df['total_daily'].mean()), 'std': float(df['total_daily'].std())},
-        'avg_hourly': {'mean': float(df['avg_hourly'].mean()), 'std': float(df['avg_hourly'].std())},
-        'min_hourly': {'mean': float(df['min_hourly'].mean())},
-        'max_hourly': {'mean': float(df['max_hourly'].mean())},
-        'std_hourly': {'mean': float(df['std_hourly'].mean())}
-    },
-    'aggregations': {
-        'yearly': yearly_stats.to_dict(),
-        'monthly': monthly_stats.to_dict(),
-        'quarterly': quarterly_stats.to_dict()
-    },
-    'calculated_metrics': {
-        'daily_range_mean': float(df['daily_range'].mean()),
-        'variation_coef_mean': float(df['variation_coef'].mean())
-    }
+    'daily_stats': daily_consumption.to_dict('records'),
+    'hourly_pattern': hourly_pattern.to_dict('records'),
+    'monthly_stats': monthly_consumption.to_dict('records'),
+    'zone_stats': zone_consumption.to_dict('records'),
+    'summary_stats': stats_summary,
+    'anomaly_threshold': stats_summary['avg_hourly'] + 2 * stats_summary['std_hourly']
 }
+
+df_result = daily_consumption.copy()
