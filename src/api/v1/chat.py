@@ -143,6 +143,8 @@ async def chat(
     answer_call_agent = answer_dict.get("call_agent", None)
     answer_agent_form = answer_dict.get("agent_form", None)
     s3_key_answer = answer_dict.get("s3_key_answer", None)
+    doc_base64 = answer_dict.get("doc_base64", None)
+    docs_name = answer_dict.get("docs_name", None)
 
     # =================================================================================================================
 
@@ -198,5 +200,7 @@ async def chat(
         "table_name": table_name,
         "call_agent": answer_call_agent,
         "agent_form": answer_agent_form,
-        "chat_name": chat_name
+        "chat_name": chat_name,
+        "doc_base64": doc_base64,
+        "docs_name": docs_name
     }

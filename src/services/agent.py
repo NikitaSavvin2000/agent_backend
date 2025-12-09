@@ -1,8 +1,12 @@
+import os
+import base64
 import json
 from typing import Annotated, Optional, Any, Dict, List
 from src.agents.intent_agent import get_agent_tools
 import pandas as pd
 from src.utils.s3_loader import upload_to_s3, load_from_s3, upload_df_to_s3
+from datetime import datetime
+
 
 from src.services.fetch_data import fetch_example_data
 from src.utils.describe_df import describe_df_for_llm_verbose
@@ -11,6 +15,8 @@ from src.agents.agent_answer import fill_empty_agent_answer, simple_agent_answer
 from src.agents.analysis_agent import analytics_agent
 from src.agents.forecast_agent import forecast_request, summary_for_forecast
 
+home_path = os.getcwd()
+mock_doc_path = os.path.join(home_path, "src", "mocks", "mock_doc.docx")
 
 sep_system_file_name_key = "_1s2e3p4_"
 
@@ -87,12 +93,30 @@ async def agent_answer(
         df_result = df_result.astype(str)
         message_tables.append(json.loads(df_result.to_json(orient='records', force_ascii=False)))
         s3_key_answer = await upload_df_to_s3(df=df_result)
+        describe_df_result_df = describe_df_for_llm_verbose(df=df_result)
+    else:
+        describe_df_result_df = "Никакие данные переданы не были, описывать их не нужно"
+
 
     if agent_message is None:
-        describe_df_result_df = describe_df_for_llm_verbose(df=df_result)
         agent_message = await fill_empty_agent_answer(user_task=message, describe_df=describe_df_result_df)
 
     agent_data_s3_key = s3_key
+
+    # ================================= ЗДЕСЬ БУДЕТ ЛОГИКА ФОРМИРОВАНИЯ ДОКУМЕНТА ====================================
+    #TODO пока тестовое
+
+
+    with open(mock_doc_path, "rb") as f:
+        doc_bytes = f.read()
+    doc_base64 = base64.b64encode(doc_bytes).decode("utf-8")
+
+    if doc_base64 is not None:
+        now_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        docs_name = f"Отчет за {now_str}.docx"
+
+
+# ================================================================================================================
 
     return {
             "agent_message": agent_message,
@@ -102,5 +126,7 @@ async def agent_answer(
             "agent_data_s3_key": agent_data_s3_key,
             "call_agent": call_agent,
             "agent_form": agent_form,
-            "s3_key_answer": s3_key_answer
+            "s3_key_answer": s3_key_answer,
+            "doc_base64": doc_base64,
+            "docs_name": docs_name
         }
