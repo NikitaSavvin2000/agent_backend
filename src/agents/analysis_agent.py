@@ -5,7 +5,8 @@ from openai import OpenAI
 from src.agents.prompts import analytics_prompt, resonating_prompt, visualisation_prompt
 from src.agents.main_llm import call_llm
 from src.logger import get_logger
-
+import plotly.io as pio
+import base64
 
 logger = get_logger("analytics_agent")
 
