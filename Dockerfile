@@ -13,7 +13,15 @@ COPY pdm.lock .
 RUN pip install -U pip setuptools wheel
 RUN pip install pdm
 RUN pdm install --prod --no-lock --no-editable
-RUN apt-get update && apt-get install -y chromium-browser
-ENV PLOTLY_BROWSER_EXECUTABLE=/usr/bin/chromium-browser
+
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PLOTLY_BROWSER_EXECUTABLE=/usr/bin/chromium
+
+
 EXPOSE 7070
 ENTRYPOINT ["pdm", "run", "src/server.py"]
