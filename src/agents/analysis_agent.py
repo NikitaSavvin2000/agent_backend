@@ -94,6 +94,8 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
             if result_analysis is None:
                 result_analysis = ""
             result_analysis = str(result_analysis) + '\n## **Обоснование**\n' + str(result_resonating)
+        else:
+            result_analysis = str(result_analysis)
 
         if html_output is None:
             logger.warning("Переменная html_output не найдена после выполнения кода")
