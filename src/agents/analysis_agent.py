@@ -28,7 +28,7 @@ async def analytics_resonating_agent(user_task: str, result_analysis: str, meta_
             {"role": "user", "content": user_task}
         ]
 
-        response = call_llm(messages, temperature=0.0, max_tokens=6000)
+        response = call_llm(messages, temperature=0.8, max_tokens=6000)
         answer= response.choices[0].message.content.strip()
 
         return answer
@@ -91,8 +91,11 @@ async def analytics_agent(user_task: str, full_describe_data: str, df):
 
         if need_resonating:
             result_resonating = await analytics_resonating_agent(user_task, result_analysis, meta_for_resonating)
-            if result_resonating is not None:
-                result_analysis = result_analysis + '\n## **Обоснование**\n' + result_resonating
+            if result_analysis is None:
+                result_analysis = ""
+            result_analysis = str(result_analysis) + '\n## **Обоснование**\n' + str(result_resonating)
+        else:
+            result_analysis = str(result_analysis)
 
         if html_output is None:
             logger.warning("Переменная html_output не найдена после выполнения кода")
