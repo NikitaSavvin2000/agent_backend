@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:d3fe53785799c54d27292403fee91d900cfa41842420c26073b3a456cc94adda"
+content_hash = "sha256:1060ba04d1b847698e3ef77268980c940c8a4b45a5365e38a34e26d852830ee0"
 
 [[metadata.targets]]
 requires_python = ">=3.12"
@@ -2069,6 +2069,17 @@ files = [
     {file = "statsmodels-0.14.5-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:557df3a870a57248df744fdfcc444ecbc5bdbf1c042b8a8b5d8e3e797830dc2a"},
     {file = "statsmodels-0.14.5-cp314-cp314-win_amd64.whl", hash = "sha256:95af7a9c4689d514f4341478b891f867766f3da297f514b8c4adf08f4fa61d03"},
     {file = "statsmodels-0.14.5.tar.gz", hash = "sha256:de260e58cccfd2ceddf835b55a357233d6ca853a1aa4f90f7553a52cc71c6ddf"},
+]
+
+[[package]]
+name = "tabulate"
+version = "0.9.0"
+requires_python = ">=3.7"
+summary = "Pretty-print tabular data"
+groups = ["default"]
+files = [
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
 ]
 
 [[package]]
