@@ -20,6 +20,20 @@ app = APIRouter()
 
 LIMIT_CONTEXT_MASSAGES = 7
 
+error_mock_massage = """
+## 🤖 404 - Агент временно недоступен
+
+Наш ИИ-аналитик по неизвестным причинам не дал ответа.  
+Мы уже работаем над решением, попробуйте повторить запрос чуть-чуть позднее.
+
+## 📞 Связь с основателями
+
+Если возникнут вопросы — пишите в телеграм:  
+Саввин Никита — [https://t.me/SavvinNikita](https://t.me/SavvinNikita)  
+Васенин Дмитрий — [https://t.me/dvasenin](https://t.me/dvasenin)
+
+"""
+
 def _str_to_int(value: str | None) -> int | None:
     if value is None or value == "":
         return None
@@ -123,28 +137,40 @@ async def chat(
     # ===================================== ЗДЕСЬ ЛОГИКА АГЕНТА =================================================
     agent_role = "agent"
 
-    answer_dict = await agent_answer(message=message,
-                       organization_id=organization_id,
-                       connection_id=connection_id,
-                       table_name=table_name,
-                       s3_key=s3_key,
-                       call_agent=call_agent,
-                       agent_form_str=agent_form_str,
-                       message_context=message_context,
-                       user_means_context=user_means_context
+    try:
+        answer_dict = await agent_answer(message=message,
+                           organization_id=organization_id,
+                           connection_id=connection_id,
+                           table_name=table_name,
+                           s3_key=s3_key,
+                           call_agent=call_agent,
+                           agent_form_str=agent_form_str,
+                           message_context=message_context,
+                           user_means_context=user_means_context
+                            )
 
-                                     )
-
-    agent_message = answer_dict.get("agent_message", None)
-    message_html_code = answer_dict.get("message_html_code", None)
-    message_tables = answer_dict.get("message_tables", [])
-    message_links = answer_dict.get("message_links", {})
-    agent_data_s3_key = answer_dict.get("agent_data_s3_key", None)
-    answer_call_agent = answer_dict.get("call_agent", None)
-    answer_agent_form = answer_dict.get("agent_form", None)
-    s3_key_answer = answer_dict.get("s3_key_answer", None)
-    doc_base64 = answer_dict.get("doc_base64", None)
-    docs_name = answer_dict.get("docs_name", None)
+        agent_message = answer_dict.get("agent_message", None)
+        message_html_code = answer_dict.get("message_html_code", None)
+        message_tables = answer_dict.get("message_tables", [])
+        message_links = answer_dict.get("message_links", {})
+        agent_data_s3_key = answer_dict.get("agent_data_s3_key", None)
+        answer_call_agent = answer_dict.get("call_agent", None)
+        answer_agent_form = answer_dict.get("agent_form", None)
+        s3_key_answer = answer_dict.get("s3_key_answer", None)
+        doc_base64 = answer_dict.get("doc_base64", None)
+        docs_name = answer_dict.get("docs_name", None)
+    except Exception as e:
+        answer_dict = {}
+        agent_message = answer_dict.get("agent_message", error_mock_massage)
+        message_html_code = answer_dict.get("message_html_code", None)
+        message_tables = answer_dict.get("message_tables", [])
+        message_links = answer_dict.get("message_links", {})
+        agent_data_s3_key = answer_dict.get("agent_data_s3_key", None)
+        answer_call_agent = answer_dict.get("call_agent", None)
+        answer_agent_form = answer_dict.get("agent_form", None)
+        s3_key_answer = answer_dict.get("s3_key_answer", None)
+        doc_base64 = answer_dict.get("doc_base64", None)
+        docs_name = answer_dict.get("docs_name", None)
 
     # =================================================================================================================
 

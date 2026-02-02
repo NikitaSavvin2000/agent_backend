@@ -23,7 +23,7 @@ api_key = models_api_config[model_to_use]["api_key"]
 model = models_api_config[model_to_use]["model"]
 base_url = models_api_config[model_to_use]["base_url"]
 
-def call_llm(messages, temperature=0.5, max_tokens=2512, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
+def call_llm(messages, temperature=0.5, max_tokens=5512, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
     if api_key is None:
         raise ValueError("API key не задана и не найдена в окружении")
 

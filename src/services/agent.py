@@ -11,14 +11,17 @@ from datetime import datetime
 from src.services.fetch_data import fetch_example_data
 from src.utils.describe_df import describe_df_for_llm_verbose
 from src.agents.plot_agent import agent_plot_generation
-from src.agents.agent_answer import fill_empty_agent_answer, simple_agent_answer
+from src.agents.agent_answer import fill_empty_agent_answer, simple_agent_answer, answer_describe_about_agent
 from src.agents.analysis_agent import analytics_agent
 from src.agents.forecast_agent import forecast_request, summary_for_forecast
+from src.services.answer_to_doc import markdown_answer_2_doc
 
 home_path = os.getcwd()
 mock_doc_path = os.path.join(home_path, "src", "mocks", "mock_doc.docx")
 
 sep_system_file_name_key = "_1s2e3p4_"
+
+df_mock_data = pd.read_csv(os.path.join(home_path, "src/mock_data/morocco zone 2 - powerconsumption_resampled.csv"))
 
 
 async def pre_fill_forecast_form(df):
@@ -47,13 +50,15 @@ async def agent_answer(
     agent_form = None
     df_result = None
     s3_key_answer = None
+    doc_base64 = None
+    docs_name = None
 
     list_to_call_services = get_agent_tools(user_query=message, message_context=message_context, user_means_context=user_means_context)
 
     for service in list_to_call_services:
         print(service)
 
-    if connection_id and table_name and s3_key is None:
+    if (connection_id and table_name) and s3_key is None:
         df = await fetch_example_data(connection_id=connection_id, source_table=table_name, organization_id=organization_id)
         describe_df = describe_df_for_llm_verbose(df=df)
     elif s3_key:
@@ -65,6 +70,7 @@ async def agent_answer(
 
     if call_agent == "forecast":
         pass
+
 
     if "visualization" in list_to_call_services and df is not None:
         message_html_code, df_result, png_base64 = await agent_plot_generation(user_task=message, full_describe_data=describe_df, df=df)
@@ -98,18 +104,28 @@ async def agent_answer(
         describe_df_result_df = "Никакие данные переданы не были, описывать их не нужно"
 
 
+    # if agent_message is None and "none" not in list_to_call_services :
+    #     agent_message = await fill_empty_agent_answer(user_task=message, describe_df=describe_df_result_df)
+    #     message_tables.append(json.loads(df_mock_data.to_json(orient='records', force_ascii=False)))
+    # else:
+    #     agent_message = await answer_describe_about_agent(user_message=message)
+    #     message_tables.append(json.loads(df_mock_data.to_json(orient='records', force_ascii=False)))
+
     if agent_message is None:
-        agent_message = await fill_empty_agent_answer(user_task=message, describe_df=describe_df_result_df)
+       if "none" not in list_to_call_services:
+           agent_message = await fill_empty_agent_answer(user_task=message, describe_df=describe_df_result_df)
+           message_tables.append(json.loads(df_mock_data.to_json(orient='records', force_ascii=False)))
+       else:
+           agent_message = await answer_describe_about_agent(user_message=message)
+           message_tables.append(json.loads(df_mock_data.to_json(orient='records', force_ascii=False)))
+    else:
+        doc_base64 = markdown_answer_2_doc(markdown_answer=agent_message, message_html_code=message_html_code)
+
 
     agent_data_s3_key = s3_key
 
     # ================================= ЗДЕСЬ БУДЕТ ЛОГИКА ФОРМИРОВАНИЯ ДОКУМЕНТА ====================================
     #TODO пока тестовое
-
-
-    with open(mock_doc_path, "rb") as f:
-        doc_bytes = f.read()
-    doc_base64 = base64.b64encode(doc_bytes).decode("utf-8")
 
     if doc_base64 is not None:
         now_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

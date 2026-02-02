@@ -12,12 +12,12 @@ logger = get_logger("chat_operations")
 
 
 async def test_chat_naming(s):
-    if len(s) > 10:
-        base = s[:10]
+    n_letters = 20
+    if len(s) > n_letters:
+        base = s[:n_letters]
     else:
         base = s
-    extra = ''.join(random.choice(s) for _ in range(3))
-    return base + extra + "..."
+    return base + "..."
 
 
 async def create_new_chat(user_id: int, message: str) -> int:
